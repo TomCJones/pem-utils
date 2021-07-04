@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Title>DerConverter</Title>
     <Description>DER/ASN.1 Converter</Description>
-    <Version>1.0.0.0</Version>
+    <Version>1.0.0.1</Version>
     <Authors>Wouter Huysentruit</Authors>
     <Company>Huysentruit</Company>
     <Product>DerConverter</Product>
@@ -14,8 +14,9 @@
     <PackageLicenseUrl>https://raw.githubusercontent.com/huysentruitw/pem-utils/master/LICENSE</PackageLicenseUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/huysentruitw/pem-utils</RepositoryUrl>
-    <TargetFrameworks>net451;net471;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net5.0</TargetFrameworks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <AssemblyVersion>1.0.0.1</AssemblyVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

@@ -1,15 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26430.12
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31025.218
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DerConverter", "src\DerConverter\DerConverter.csproj", "{FFADCCF7-5032-401E-AF14-12004635A862}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DerConverter", "src\DerConverter\DerConverter.csproj", "{FFADCCF7-5032-401E-AF14-12004635A862}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DerConverter.Tests", "tests\DerConverter.Tests\DerConverter.Tests.csproj", "{0FDDAEDA-572E-41D5-9445-C84216226917}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DerConverter.Tests", "tests\DerConverter.Tests\DerConverter.Tests.csproj", "{0FDDAEDA-572E-41D5-9445-C84216226917}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PemUtils", "src\PemUtils\PemUtils.csproj", "{0226693D-558D-4F03-89D6-15CA764814CA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PemUtils", "src\PemUtils\PemUtils.csproj", "{0226693D-558D-4F03-89D6-15CA764814CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PemUtils.Tests", "tests\PemUtils.Tests\PemUtils.Tests.csproj", "{C21C039B-D3AD-49F7-814D-456D139FEDE3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PemUtils.Tests", "tests\PemUtils.Tests\PemUtils.Tests.csproj", "{C21C039B-D3AD-49F7-814D-456D139FEDE3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FF27580A-6B2E-4623-AB4D-CB9038E9940D}"
 	ProjectSection(SolutionItems) = preProject
@@ -20,6 +20,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3BAB1F50-4661-4192-89DC-9E7D1F9854CE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{22BCC6EE-EC8E-481D-A9F9-943DE966D441}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "TestApp\TestApp.csproj", "{B04CD20E-541A-455F-9C80-5FB5FF86EEEA}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0226693D-558D-4F03-89D6-15CA764814CA} = {0226693D-558D-4F03-89D6-15CA764814CA}
+		{FFADCCF7-5032-401E-AF14-12004635A862} = {FFADCCF7-5032-401E-AF14-12004635A862}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,6 +49,10 @@ Global
 		{C21C039B-D3AD-49F7-814D-456D139FEDE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C21C039B-D3AD-49F7-814D-456D139FEDE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C21C039B-D3AD-49F7-814D-456D139FEDE3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B04CD20E-541A-455F-9C80-5FB5FF86EEEA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B04CD20E-541A-455F-9C80-5FB5FF86EEEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B04CD20E-541A-455F-9C80-5FB5FF86EEEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B04CD20E-541A-455F-9C80-5FB5FF86EEEA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,5 +62,9 @@ Global
 		{0FDDAEDA-572E-41D5-9445-C84216226917} = {22BCC6EE-EC8E-481D-A9F9-943DE966D441}
 		{0226693D-558D-4F03-89D6-15CA764814CA} = {3BAB1F50-4661-4192-89DC-9E7D1F9854CE}
 		{C21C039B-D3AD-49F7-814D-456D139FEDE3} = {22BCC6EE-EC8E-481D-A9F9-943DE966D441}
+		{B04CD20E-541A-455F-9C80-5FB5FF86EEEA} = {22BCC6EE-EC8E-481D-A9F9-943DE966D441}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7B7F75AC-EF6D-49E0-93AD-360EF3B6FAB9}
 	EndGlobalSection
 EndGlobal
