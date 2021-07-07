@@ -18,10 +18,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3BAB1F50-4661-4192-89DC-9E7D1F9854CE}"
+	ProjectSection(SolutionItems) = preProject
+		TextFile1.json = TextFile1.json
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{22BCC6EE-EC8E-481D-A9F9-943DE966D441}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "TestApp\TestApp.csproj", "{B04CD20E-541A-455F-9C80-5FB5FF86EEEA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestApp", "TestApp\TestApp.csproj", "{B04CD20E-541A-455F-9C80-5FB5FF86EEEA}"
 	ProjectSection(ProjectDependencies) = postProject
 		{0226693D-558D-4F03-89D6-15CA764814CA} = {0226693D-558D-4F03-89D6-15CA764814CA}
 		{FFADCCF7-5032-401E-AF14-12004635A862} = {FFADCCF7-5032-401E-AF14-12004635A862}

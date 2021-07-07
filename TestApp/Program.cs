@@ -25,8 +25,10 @@ namespace TestApp
                     path = fileDialog.FileName;
                     var stream = File.OpenRead(path);
                     PemReader pemReader = new PemReader(stream);
-                    var rsaParameters = pemReader.ReadRsaKey();
-                    string fu = rsaParameters.ToString();
+                    //                  var rsaParameters = pemReader.ReadRsaKey();
+                    //                  string fu = rsaParameters.ToString();
+
+                    string jsonAsn = pemReader.ReadAsJson();
                 }
                 catch (Exception ex)
                 {
