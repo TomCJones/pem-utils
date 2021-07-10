@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using System.Windows.Forms;
 using PemUtils;
 
 namespace TestApp
@@ -15,24 +14,26 @@ namespace TestApp
         static void Main(string[] args)
         {
             Console.WriteLine("PemUtil test app Starting");
-            string pemCode = "-----";
+     //       string pemCode = "-----";
             string path = "";
-            var fileDialog = new OpenFileDialog();
-            if (fileDialog.ShowDialog() == DialogResult.OK)
+            //    var fileDialog = new OpenFileDialog();
+            Console.Write("Enter file name of PEM file:");
+            path = Console.ReadLine().Trim('"');
+            if (!string.IsNullOrWhiteSpace(path) )
             {
                 try
                 { 
-                    path = fileDialog.FileName;
                     var stream = File.OpenRead(path);
                     PemReader pemReader = new PemReader(stream);
                     //                  var rsaParameters = pemReader.ReadRsaKey();
                     //                  string fu = rsaParameters.ToString();
 
                     string jsonAsn = pemReader.ReadAsJson();
+                    Console.Write(jsonAsn);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("File did not contain a well formated PEM stucture - exception " + ex.Message);
+                     Console.WriteLine("File did not contain a well formated PEM stucture - exception " + ex.Message);
                 }
             }
             else

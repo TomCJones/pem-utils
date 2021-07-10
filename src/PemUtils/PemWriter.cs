@@ -36,7 +36,7 @@ namespace PemUtils
 
         public void WritePublicKey(RSAParameters parameters)
         {
-            var innerSequence = new DerAsnSequence(new DerAsnType[]
+            var innerSequence = new DerAsnContext(new DerAsnType[]
             {
                 new DerAsnInteger(ToBigInteger(parameters.Modulus)),
                 new DerAsnInteger(ToBigInteger(parameters.Exponent))
@@ -44,9 +44,9 @@ namespace PemUtils
 
             var innerSequenceData = DerConvert.Encode(innerSequence);
 
-            var outerSequence = new DerAsnSequence(new DerAsnType[]
+            var outerSequence = new DerAsnContext(new DerAsnType[]
             {
-                new DerAsnSequence(new DerAsnType[]
+                new DerAsnContext(new DerAsnType[]
                 {
                     new DerAsnObjectIdentifier(1, 2, 840, 113549, 1, 1, 1), // rsaEncryption http://www.oid-info.com/get/1.2.840.113549.1.1.1
                     new DerAsnNull()
@@ -61,7 +61,7 @@ namespace PemUtils
 
         public void WritePrivateKey(RSAParameters parameters)
         {
-            var sequence = new DerAsnSequence(new DerAsnType[]
+            var sequence = new DerAsnContext(new DerAsnType[]
             {
                 new DerAsnInteger(ToBigInteger(new byte[] { 0x00 })),   // Version
                 new DerAsnInteger(ToBigInteger(parameters.Modulus)),

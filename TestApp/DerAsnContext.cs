@@ -1,11 +1,16 @@
-﻿using System.Collections.Generic;
+﻿// DerAsnContext to handle methods for certificateas  (c) 2021  tomjones
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using DerConverter.Asn;
 
-namespace DerConverter.Asn.KnownTypes
+namespace PemUtils
 {
-    public class DerAsnContext : DerAsnType<DerAsnType[]>
-    {
-        public DerAsnContext(IDerAsnDecoder decoder, DerAsnIdentifier identifier, Queue<byte> rawData)  // to public 210707
+    class DerAsnContext : DerAsnType<DerAsnType[]>
+    { 
+        public DerAsnContext(IDerAsnDecoder decoder, DerAsnIdentifier identifier, Queue<byte> rawData)
             : base(decoder, identifier, rawData)
         {
         }

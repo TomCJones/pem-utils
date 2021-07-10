@@ -95,7 +95,7 @@ namespace DerConverter.Tests.Asn
         public void Encode_DerAsnSequence_ShouldEncodeKnownDefaultType()
         {
             var encoder = new DefaultDerAsnEncoder();
-            var data = encoder.Encode(new DerAsnSequence(new DerAsnType[]
+            var data = encoder.Encode(new DerAsnContext(new DerAsnType[]
             {
                 new DerAsnNull(),
                 new DerAsnObjectIdentifier(1, 2, 840, 113549, 1, 1, 1),

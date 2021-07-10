@@ -122,7 +122,7 @@ namespace DerConverter.Asn
             RegisterGenericType(DerAsnEncodingType.Primitive, DerAsnKnownTypeTags.Primitive.UtcTime, (decoder, identifier, data) => new DerAsnUtcTime(decoder, identifier, data));
             RegisterGenericType(DerAsnEncodingType.Primitive, DerAsnKnownTypeTags.Primitive.Ia5String, (decoder, identifier, data) => new DerAsnIa5String(decoder, identifier, data));
 
-            RegisterGenericType(DerAsnEncodingType.Constructed, DerAsnKnownTypeTags.Constructed.Sequence, (decoder, identifier, data) => new DerAsnSequence(decoder, identifier, data));
+            RegisterGenericType(DerAsnEncodingType.Constructed, DerAsnKnownTypeTags.Constructed.Sequence, (decoder, identifier, data) => new DerAsnContext(decoder, identifier, data));
             RegisterGenericType(DerAsnEncodingType.Constructed, DerAsnKnownTypeTags.Constructed.Set, (decoder, identifier, data) => new DerAsnSet(decoder, identifier, data));
         }
 

@@ -13,7 +13,7 @@ namespace DerConverter.Tests.Asn.KnownTypes
         [Test]
         public void ValueConstructor_ShouldSetIdentifier()
         {
-            var sequence = new DerAsnSequence(Array.Empty<DerAsnType>());
+            var sequence = new DerAsnContext(Array.Empty<DerAsnType>());
             Assert.That(sequence.Identifier, Is.EqualTo(DerAsnIdentifiers.Constructed.Sequence));
         }
 
@@ -24,7 +24,7 @@ namespace DerConverter.Tests.Asn.KnownTypes
             var decoderMock = new Mock<IDerAsnDecoder>();
             decoderMock.Setup(x => x.Decode(It.IsAny<Queue<byte>>())).Callback<Queue<byte>>(x => x.Dequeue());
 
-            new DerAsnSequence(decoderMock.Object, DerAsnIdentifiers.Constructed.Sequence, data);
+            new DerAsnContext(decoderMock.Object, DerAsnIdentifiers.Constructed.Sequence, data);
 
             Assert.That(data, Has.Count.EqualTo(0));
             decoderMock.Verify(x => x.Decode(It.IsAny<Queue<byte>>()), Times.Exactly(3));
@@ -34,7 +34,7 @@ namespace DerConverter.Tests.Asn.KnownTypes
         public void Encode_ShouldEncodeCorrectly()
         {
             var encoderMock = new Mock<IDerAsnEncoder>();
-            var sequence = new DerAsnSequence(new DerAsnType[]
+            var sequence = new DerAsnContext(new DerAsnType[]
                 {
                     new DerAsnNull(),
                     new DerAsnObjectIdentifier(1, 2, 840, 113549, 1, 1, 1),

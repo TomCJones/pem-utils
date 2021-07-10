@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Title>PemUtils</Title>
     <Description>PEM utils</Description>
-    <Version>1.0.0.1</Version>
+    <Version>5.0.0.1</Version>
     <Authors>Wouter Huysentruit</Authors>
     <Company>Huysentruit</Company>
     <Product>PemUtils</Product>

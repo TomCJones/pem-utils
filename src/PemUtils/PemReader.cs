@@ -18,12 +18,17 @@ namespace PemUtils
         private readonly Stream _stream;
         private readonly bool _disposeStream;
         private Encoding _encoding;
+        public static Func<IDerAsnDecoder> ExpandedDecoder { get; set; } = () => new DefaultDerAsnDecoder();
+        //   protected ExpandedDecoder decoder;
 
         public PemReader(Stream stream, bool disposeStream = false, Encoding encoding = null)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _disposeStream = disposeStream;
             _encoding = encoding ?? Encoding.UTF8;
+            if (ExpandedDecoder == null) throw new ArgumentNullException(nameof(ExpandedDecoder));
+            //       var decoder = ExpandedDecoder();
+            //      decoder.RegisterType(DerAsnEncodingType.Constructed, DerAsnKnownTypeTags.Constructed.Sequence, (decoder, identifier, data) => new DerAsnSequence(decoder, identifier, data));
         }
 
         public void Dispose()
@@ -35,16 +40,25 @@ namespace PemUtils
         {
             string json = "{\"error\": \"No results\"}";
             var parts = ReadPemParts();
+            var decoder = new DefaultDerAsnDecoder();
+            // add in as many buckets as needed by the certs.
+            int i = 3;
+            while (i > -1)
+            {
+                DerAsnIdentifier identifier = new DerAsnIdentifier(DerAsnTagClass.ContextSpecific, DerAsnEncodingType.Constructed, i);
+                DefaultDerAsnDecoder defaultDerAsnDecoder = decoder.RegisterType(identifier, (decoder, identifier, data) => new DerAsnContext(decoder, identifier, data));
+                i--;
+            }
+
             byte[] derData = Convert.FromBase64String(parts.Body);
-            var der = DerConvert.Decode(derData);
+            var der = decoder.Decode(derData);
             if (der == null) throw new ArgumentNullException(nameof(der));
-            var sequence = der as DerAsnSequence;
+            var sequence = der as DerAsnContext;
             if (sequence == null) throw new ArgumentException($"{nameof(der)} is not a sequence");
-            json = "{ \"" + parts.Format + "\": qqqq }";
             json = SequenceAsJson(sequence);
-            return json;
+            return "{\"" + parts.Format + "\":" + json + "}";
         }
-        public string SequenceAsJson(DerAsnSequence das)
+        public string SequenceAsJson(DerAsnContext das)
         {
             StringBuilder seqStr = new StringBuilder();
             int i = 0; int cnt = das.Value.Length;
@@ -65,22 +79,23 @@ namespace PemUtils
             string selectType = dat.GetType().Name;
             string json = "error with type " + selectType;
 
-            if (selectType == "DerAsnInteger") {  //type x02
-                byte[] ba = new byte[1] { 0 };
-           //     if (dat.Value.isZero)
-                var dai = dat.Value as DerAsnInteger;
-         //       int daii = dat.Value as int;  //  int is a non-nullable type
+            if (selectType == "DerAsnInteger")
+            {          //type x02
+                byte[] ba = new byte[1] { 0 };            // to avoid null condition
+                var dai = dat.Value as DerAsnInteger;     // this is nullable while int is not
                 if (dai != null) { ba = GetIntegerData(dat.Value as DerAsnInteger); }
-                string intStr = BitConverter.ToString(ba);
-                return "\"int\":" + intStr;  //  this converts to hex --  might want a different encoding?
+                long intBin = 0;                          // careful to avoid leading zeros. 
+                try { intBin = BitConverter.ToInt64(ba); } catch { };  // just ignore overflow
+                string intStr = intBin.ToString();
+                return "\"int\":" + intStr;
             }
             else if (selectType == "DerAsnOctetString")   //type x04
             {
                 byte[] octStr = dat.Value as byte[];
-                string hexStr = BitConverter.ToString(octStr);    //  this converts to hex --  might want a different encoding?
+                string hexStr = BitConverter.ToString(octStr);    //  this converts to hex --  might want base64url?
                 return "\"octet\":\"" + hexStr + "\"";
             }
-            else if (selectType == "DerAsnNull")   //type x05
+            else if (selectType == "DerAsnNull")           //type x05
             {
                 return "\"null\":0";
             }
@@ -93,12 +108,17 @@ namespace PemUtils
                     if (seq.Length > 0) { seq.Append("."); }
                     seq.Append(iv.ToString());
                 }
-                return "\"oid\":" + seq.ToString();
+                return "\"oid\":\"" + seq.ToString() + "\"";
             }
             else if (selectType == "DerAsnSequence")   //type x10
             {
-                string seq = SequenceAsJson(dat as DerAsnSequence);
+                string seq = SequenceAsJson(dat as DerAsnContext);
                 return "\"seq\":" + seq;
+            }
+            else if (selectType == "DerAsnContext")   //type xA0 A1 A2 A3
+            {
+                string seq = SequenceAsJson(dat as DerAsnContext);
+                return "\"context\":" + seq;
             }
 
             return json;
@@ -114,7 +134,7 @@ namespace PemUtils
             string strRsa = PemFormat.Rsa._type; ;
             if (parts.Format.Equals(PemFormat.Rsa._type)) return ReadRSAPrivateKey(der);
             string str1 = parts.Format;
-            string str2 = PemFormat.Private._type ;
+            string str2 = PemFormat.Private._type;
             if (parts.Format.Equals(PemFormat.Private._type)) return ReadPrivateKey(der);
             throw new NotImplementedException($"The format {parts.Format} is not yet implemented");
         }
@@ -159,11 +179,11 @@ namespace PemUtils
         private static RSAParameters ReadPublicKey(DerAsnType der)
         {
             if (der == null) throw new ArgumentNullException(nameof(der));
-            var outerSequence = der as DerAsnSequence;
+            var outerSequence = der as DerAsnContext;
             if (outerSequence == null) throw new ArgumentException($"{nameof(der)} is not a sequence");
             if (outerSequence.Value.Length != 2) throw new InvalidOperationException("Outer sequence must contain 2 parts");
 
-            var headerSequence = outerSequence.Value[0] as DerAsnSequence;
+            var headerSequence = outerSequence.Value[0] as DerAsnContext;
             if (headerSequence == null) throw new InvalidOperationException("First part of outer sequence must be another sequence (the header sequence)");
             if (headerSequence.Value.Length != 2) throw new InvalidOperationException("The header sequence must contain 2 parts");
             var objectIdentifier = headerSequence.Value[0] as DerAsnObjectIdentifier;
@@ -175,7 +195,7 @@ namespace PemUtils
             if (innerSequenceBitString == null) throw new InvalidOperationException("Second part of outer sequence must be a bit-string");
 
             var innerSequenceData = innerSequenceBitString.ToByteArray();
-            var innerSequence = DerConvert.Decode(innerSequenceData) as DerAsnSequence;
+            var innerSequence = DerConvert.Decode(innerSequenceData) as DerAsnContext;
             if (innerSequence == null) throw new InvalidOperationException("Could not decode the bit-string as a sequence");
             if (innerSequence.Value.Length < 2) throw new InvalidOperationException("Inner sequence must at least contain 2 parts (modulus and exponent)");
 
@@ -189,7 +209,7 @@ namespace PemUtils
         private static RSAParameters ReadPrivateKey(DerAsnType der)
         {
             if (der == null) throw new ArgumentNullException(nameof(der));
-            var sequence = der as DerAsnSequence;
+            var sequence = der as DerAsnContext;
             if (sequence == null) throw new ArgumentException($"{nameof(der)} is not a sequence");
             if (sequence.Value.Length != 9) throw new InvalidOperationException("Sequence must contain 9 parts");
             return new RSAParameters
@@ -207,7 +227,7 @@ namespace PemUtils
         private static RSAParameters ReadRSAPrivateKey(DerAsnType der)
         {
             if (der == null) throw new ArgumentNullException(nameof(der));
-            var sequence = der as DerAsnSequence;
+            var sequence = der as DerAsnContext;
             if (sequence == null) throw new ArgumentException($"{nameof(der)} is not a sequence");
             if (sequence.Value.Length != 9) throw new InvalidOperationException("Sequence must contain 9 parts");
             return new RSAParameters
