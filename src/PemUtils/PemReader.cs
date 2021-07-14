@@ -4,6 +4,8 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using DerConverter;
@@ -35,9 +37,27 @@ namespace PemUtils
         {
             if (_disposeStream) _stream.Dispose();
         }
-
-        public string ReadAsJson()
+         
+        public string ReadAsJson(string schema)
         {
+            JsonDocument schem = null;
+            string typeStr = "typeStr";
+            if (!string.IsNullOrWhiteSpace(schema))
+            {
+                schem = JsonDocument.Parse(schema);
+                try
+                {
+                    //             typeStr = schem.RootElement.GetProperty("tbscertificate").GetString();
+                    var toplevel = schem.RootElement.EnumerateObject();
+                    foreach (var tl in toplevel)
+                    {
+                        typeStr = tl.Name;
+                        var l1 = tl.Value;
+                    }
+                }
+                catch (Exception ex) { typeStr = "not_found " + ex.Message; }
+
+            }
             string json = "{\"error\": \"No results\"}";
             var parts = ReadPemParts();
             var decoder = new DefaultDerAsnDecoder();
@@ -60,6 +80,7 @@ namespace PemUtils
         }
         public string SequenceAsJson(DerAsnContext das)
         {
+            if (das == null) return "{null}";
             StringBuilder seqStr = new StringBuilder();
             int i = 0; int cnt = das.Value.Length;
             string foo = "";
@@ -79,8 +100,14 @@ namespace PemUtils
             string selectType = dat.GetType().Name;
             string json = "error with type " + selectType;
 
-            if (selectType == "DerAsnInteger")
-            {          //type x02
+            if (selectType == "DerAsnBoolen")            //type x01
+            {
+                byte[] ba = new byte[1] { 0 };            // to avoid null condition
+                var bValue = dat.Value as DerAsnBoolean;     // TODO - actually check value
+                return "\"bool\":\"false\"";
+            }
+            else if (selectType == "DerAsnInteger")            //type x02
+            {
                 byte[] ba = new byte[1] { 0 };            // to avoid null condition
                 var dai = dat.Value as DerAsnInteger;     // this is nullable while int is not
                 if (dai != null) { ba = GetIntegerData(dat.Value as DerAsnInteger); }
@@ -88,6 +115,11 @@ namespace PemUtils
                 try { intBin = BitConverter.ToInt64(ba); } catch { };  // just ignore overflow
                 string intStr = intBin.ToString();
                 return "\"int\":" + intStr;
+            }
+            else if (selectType == "DerAsnBitString")    //type x03
+            {
+                string seq = SequenceAsJson(dat as DerAsnContext);
+                return "\"bitstring\":" + seq.Replace('-', ':');
             }
             else if (selectType == "DerAsnOctetString")   //type x04
             {
@@ -114,6 +146,11 @@ namespace PemUtils
             {
                 string seq = SequenceAsJson(dat as DerAsnContext);
                 return "\"seq\":" + seq;
+            }
+            else if (selectType == "DerAsnSet")       //type x11
+            {
+                string seq = SequenceAsJson(dat as DerAsnContext);
+                return "\"set\":" + seq;
             }
             else if (selectType == "DerAsnContext")   //type xA0 A1 A2 A3
             {

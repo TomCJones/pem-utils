@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using PemUtils;
 
+
 namespace TestApp
 {
     
@@ -14,11 +15,15 @@ namespace TestApp
         static void Main(string[] args)
         {
             Console.WriteLine("PemUtil test app Starting");
-     //       string pemCode = "-----";
-            string path = "";
+            string schema = "";
+            string path = "CERTIFICATE-schema.json";
+            using (StreamReader sr = new StreamReader(path))
+            {
+                schema = sr.ReadToEnd();
+            }
             //    var fileDialog = new OpenFileDialog();
             Console.Write("Enter file name of PEM file:");
-            path = Console.ReadLine().Trim('"');
+            path = Console.ReadLine().Trim('"');  // to support cut and paste from file explorer
             if (!string.IsNullOrWhiteSpace(path) )
             {
                 try
@@ -28,7 +33,7 @@ namespace TestApp
                     //                  var rsaParameters = pemReader.ReadRsaKey();
                     //                  string fu = rsaParameters.ToString();
 
-                    string jsonAsn = pemReader.ReadAsJson();
+                    string jsonAsn = pemReader.ReadAsJson(schema);
                     Console.Write(jsonAsn);
                 }
                 catch (Exception ex)

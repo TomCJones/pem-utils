@@ -1,0 +1,19 @@
+{
+  "tbscertificate": {
+    "_type": "SEQUENCE",
+    "version": "INTEGER",
+    "subject": "Name",
+    "issuer": "Name",
+    "serial_number": "INTEGER+1",
+    "sans": [
+      "*.trustregistry.org",
+      "trustregistry.org"
+    ]
+  },
+  "not_before": "2021-06-09T01:19:57Z",
+  "not_after": "2021-09-07T01:19:57Z",
+  "sigalg": "SHA256WithRSA",
+  "authority_key_id": "14:2E:B3:17:B7:58:56:CB:AE:50:9:40:E6:1F:AF:9D:8B:14:C2:C6",
+  "subject_key_id": "47:BE:85:6D:2:68:AE:C4:F3:E2:50:74:E0:98:79:57:23:67:E6:48",
+  "pem": "String"
+}

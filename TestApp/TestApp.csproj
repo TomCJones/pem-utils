@@ -15,8 +15,27 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="5.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\src\DerConverter\DerConverter.csproj" />
     <ProjectReference Include="..\src\PemUtils\PemUtils.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="CERTIFICATE-schema.json">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Resource>
+    <Resource Include="DerAsnContext.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="CERTIFICATE-schema.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
