@@ -15,25 +15,25 @@ namespace TestApp
         static void Main(string[] args)
         {
             Console.WriteLine("PemUtil test app Starting");
-            string schema = "";
-            string path = "CERTIFICATE-schema.json";
-            using (StreamReader sr = new StreamReader(path))
+            string rawSchema = "";
+            string cPath = "CERTIFICATE.txt";
+            DynamicDictionary schemObj = new DynamicDictionary();
+
+            using (StreamReader sr = new StreamReader(cPath))
             {
-                schema = sr.ReadToEnd();
+                rawSchema = sr.ReadToEnd();
             }
             //    var fileDialog = new OpenFileDialog();
             Console.Write("Enter file name of PEM file:");
-            path = Console.ReadLine().Trim('"');  // to support cut and paste from file explorer
+            string path = Console.ReadLine().Trim('"');  // to support cut and paste from file explorer
             if (!string.IsNullOrWhiteSpace(path) )
             {
                 try
                 { 
                     var stream = File.OpenRead(path);
                     PemReader pemReader = new PemReader(stream);
-                    //                  var rsaParameters = pemReader.ReadRsaKey();
-                    //                  string fu = rsaParameters.ToString();
-
-                    string jsonAsn = pemReader.ReadAsJson(schema);
+ 
+                    string jsonAsn = pemReader.ReadAsJson(path, rawSchema);
                     Console.Write(jsonAsn);
                 }
                 catch (Exception ex)

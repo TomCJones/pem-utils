@@ -38,8 +38,11 @@ namespace PemUtils
             if (_disposeStream) _stream.Dispose();
         }
          
-        public string ReadAsJson(string schema)
+        public string ReadAsJson(string cName, string schema)
         {
+            CddlHandler cddl = new CddlHandler(cName, schema);
+            cddl.InitalLoad();
+
             JsonDocument schem = null;
             string typeStr = "typeStr";
             if (!string.IsNullOrWhiteSpace(schema))
@@ -55,7 +58,7 @@ namespace PemUtils
                         var l1 = tl.Value;
                     }
                 }
-                catch (Exception ex) { typeStr = "not_found " + ex.Message; }
+                catch (Exception ex) { typeStr = "schema_not_found " + ex.Message; }
 
             }
             string json = "{\"error\": \"No results\"}";
@@ -106,7 +109,7 @@ namespace PemUtils
                 var bValue = dat.Value as DerAsnBoolean;     // TODO - actually check value
                 return "\"bool\":\"false\"";
             }
-            else if (selectType == "DerAsnInteger")            //type x02
+            else if (selectType == "DerAsnInteger")       //type x02
             {
                 byte[] ba = new byte[1] { 0 };            // to avoid null condition
                 var dai = dat.Value as DerAsnInteger;     // this is nullable while int is not

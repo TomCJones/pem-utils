@@ -1,0 +1,24 @@
+﻿MasterList = {
+   "type" : tstr      ; currently "1.0"
+   "version" : tstr     : currenlty "1.0"
+   "date" : tdate     ; date-time according to RFC 7049
+   ? "nextUpdate" : tdate ; date-time according to RFC 7049
+   "certificateInfo : [+ CertificateInfo]
+}
+
+ 
+CertificateInfo = { 
+? "issuerDN" : bstr ; DER-encoded Issuer Distinguished Name 
+? "subjectDN" : bstr ; DER-encoded Subject Distinguished Name 
+? "notBefore" : tdate ; notBefore date-time according to RFC 7049 
+? "notAfter" : tdate ; notAfter date-time according to RFC 7049 
+"serialNumber" : tstr ; hexadecimal encoded lowercase 
+"ski" : bstr ; DER-encoded Subject Key Identifier 
+"certificate" : bstr ; DER-encoded X.509 certificate 
+}
+
+CertStructure = {
+   ? "DN": bstr
+   "ski": bstr
+   "certificate" : bstr
+}
