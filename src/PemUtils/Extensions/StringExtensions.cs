@@ -35,6 +35,7 @@ namespace PemUtils
             bool bComment = false;
             bool bracket = false;
             bool bCap = false;
+            bool bCommand = true;
             List<string> resList = new List<string>();
             int i = 0;
             foreach (char c in input)
@@ -43,63 +44,85 @@ namespace PemUtils
                 {
                     if (c == '\n') { bComment = false; }
                 }
-                else if (c == '{')
-                {
-                    if (bracket)
-                    {
-                        throw new InvalidOperationException("close brackets w/o open bracket");
-                    }
-                    else
-                    {
-                        if (!bWhite)
-                        {
-                            string iTest = input.Substring(iStart, i - iStart).TrimEnd();
-                            resList.Add(iTest);
-                        }
-                        resList.Add("{");
-                        bracket = true;
-                        bWhite = true;
-                    }
-                }
-                else if (c == '}')
-                {
-                    if (bracket)
-                    {
-                        if (!bWhite)
-                        {
-                            string iTest = input.Substring(iStart, i - iStart);
-                            resList.Add(iTest);
-                        }
-                        resList.Add("}");
-                        bracket = false;
-                        bWhite = true;
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("two open brackets w/o close bracket");
-                    }
-                }
-                else if (bWhite)
-                {
-                    if (!Char.IsWhiteSpace(c)) { bWhite = false; iStart = i; }
-                }
                 else
                 {
-                    if (Char.IsWhiteSpace(c))
+                    if (bCommand && c == '\n')  // need to collect all tokens in a command and then terminate the command
                     {
                         string iTest = input.Substring(iStart, i - iStart).TrimEnd();
-                        if (iTest == "--") { bComment = true; bWhite = true; }
+                        resList.Add(iTest);
+                        resList.Add("tERM");
+                        bCommand = false;
+                        bWhite = true;
+                    }
+                    if (c == '{')
+                    {
+                        if (bracket)
+                        {
+                            throw new InvalidOperationException("close brackets w/o open bracket");
+                        }
                         else
                         {
-                            bCap = iTest.All(char.IsLetter) && iTest.All(char.IsUpper);
-                            if (!bCap || c == '\n') {
-                                if (iTest.EndsWith(','))  // a terminating comma is a syntax element of its own
+                            if (!bWhite)
+                            {
+                                string iTest = input.Substring(iStart, i - iStart).TrimEnd();
+                                resList.Add(iTest);
+                            }
+                            resList.Add("{");
+                            bCommand = false;
+                            bracket = true;
+                            bWhite = true;
+                        }
+                    }
+                    else if (c == '}')
+                    {
+                        if (bracket)
+                        {
+                            if (!bWhite)
+                            {
+                                string iTest = input.Substring(iStart, i - iStart);
+                                resList.Add(iTest);
+                            }
+                            resList.Add("}");
+                            bracket = false;
+                            bWhite = true;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("two open brackets w/o close bracket");
+                        }
+                    }
+                    else if (!bCommand)
+                    {
+                        if (bWhite)
+                        {
+                            if (!Char.IsWhiteSpace(c)) { bWhite = false; iStart = i; }
+                        }
+                        else
+                        {
+                            if (Char.IsWhiteSpace(c))
+                            {
+                                string iTest = input.Substring(iStart, i - iStart).TrimEnd();
+                                if (iTest == "--") { bComment = true; bWhite = true; }
+                                else if (iTest == "::=")
                                 {
-                                    resList.Add(iTest.TrimEnd(','));
-                                    resList.Add(",");
+                                    bCommand = true;
+                                    //                  resList.Add(iTest);
+                                    iStart = i;  // this prevents dups
                                 }
-                                else resList.Add(iTest);
-                                bWhite = true;
+                                else
+                                {
+                                    bCap = iTest.All(char.IsLetter) && iTest.All(char.IsUpper);
+                                    if (!bCap || c == '\n')
+                                    {
+                                        if (iTest.EndsWith(','))  // a terminating comma is a syntax element of its own
+                                        {
+                                            resList.Add(iTest.TrimEnd(','));
+                                            resList.Add(",");
+                                        }
+                                        else resList.Add(iTest);
+                                        bWhite = true;
+                                    }
+                                }
                             }
                         }
                     }

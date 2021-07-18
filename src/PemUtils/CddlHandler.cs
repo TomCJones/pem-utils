@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
@@ -39,9 +40,10 @@ namespace PemUtils
             int iState = 0;
             string cType = "";
             string label = "";
+            string seqToken = "";
             string[] iArray = _RawSchema.AsnSplit();  //the input string split into symbols
-            Object o = & entry;
-            DynamicDictionary currentDict = entry;
+            string[] seqValues = new string[3];
+            Dictionary<string, string[]> o = null;
 
             foreach (string nStr in iArray.Where(i => !string.IsNullOrWhiteSpace(i)))
             {
@@ -60,10 +62,7 @@ namespace PemUtils
                         {
                             iState = 2;
                         }
-                        else if (nStr ==  "BIT")
-                        {
-                            iState = 99;            // This is probably a BIT STRING - wait for next symbol
-                        }
+
                         else if (nStr.StringType() == 19)  // is the label pointing to a class?
                         {
                             // add to the current dictionary at this point in the stack
@@ -76,26 +75,80 @@ namespace PemUtils
                         iState = 3;
                         break;
 
-                    case 3:                          // "{" starts the creation of a new dd entry
-                        // TODO push the current state until poped with a "}"  ===  also do we need a type "SEQUENCE" in dd?
-                        o = Activator.CreateInstance(typeof(DynamicDictionary));
-                        CddlState nextPush = new CddlState()
+                    case 3:
+                        if (nStr == "{")
                         {
-                            IState = iState,
-                            Label = label,
-                            CType = cType,
-                            CDict = currentDict
-                        };
-                        stateStack.Push(nextPush);
-                        entry.Add(label, o);   // initially points to entry in main dictionary
-                        iState = 0;
+                            o = (Dictionary<string, string[]>)Activator.CreateInstance(typeof(Dictionary<string, string[]>));
+                            entry.Add(label, o); 
+                            iState = 4;
+                        }
+                        else if (nStr.StringType() == 19)
+                        {
+                            label = nStr;
+                            iState = 1;
+                        }
+                        else { throw new InvalidOperationException("Expected a valid token.  Received " + nStr); }
+
                         break;
                     case 4:
+                        if (nStr.StringType() == 19)
+                        {
+                            seqToken = nStr;
+                            seqValues[0] = seqValues[1] = seqValues[2] = "";
+                            iState = 5;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("parsing error in sequence named " + seqToken);
+                        }
+                        break;
+
+                    case 5:
+                        if (nStr == ",")
+                        {
+                            o.Add(seqToken, seqValues);
+                            iState = 4;  // go look for next token
+                        }
+                        else if (nStr == "}")
+                        {
+                            o.Add(seqToken, seqValues);
+                            iState = 0;
+                        }
+                        else if(nStr.StartsWith('['))
+                        {
+                            seqValues[0] = nStr;
+                        }
+                        else
+                        {
+                            if (string.IsNullOrWhiteSpace(seqValues[1]))
+                            {
+                            seqValues[1] = nStr;
+                            }
+                            else
+                            {
+                                if (string.IsNullOrWhiteSpace(seqValues[2]))
+                                {
+                                    seqValues[2] = nStr;
+
+                                }
+                                else
+                                {
+                                    seqValues[2] = seqValues[2] + " " + nStr;
+
+                                }
+                            }
+
+                        }
+
+                        break;
+
+                    case 6:
                         break;
 
                     default:
                         break;
                 }
+                res[0] = "Initial load succeeded";
             }
 
             return res;

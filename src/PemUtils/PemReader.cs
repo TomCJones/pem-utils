@@ -42,26 +42,8 @@ namespace PemUtils
         {
             CddlHandler cddl = new CddlHandler(cName, schema);
             cddl.InitalLoad();
+            string json;
 
-            JsonDocument schem = null;
-            string typeStr = "typeStr";
-            if (!string.IsNullOrWhiteSpace(schema))
-            {
-                schem = JsonDocument.Parse(schema);
-                try
-                {
-                    //             typeStr = schem.RootElement.GetProperty("tbscertificate").GetString();
-                    var toplevel = schem.RootElement.EnumerateObject();
-                    foreach (var tl in toplevel)
-                    {
-                        typeStr = tl.Name;
-                        var l1 = tl.Value;
-                    }
-                }
-                catch (Exception ex) { typeStr = "schema_not_found " + ex.Message; }
-
-            }
-            string json = "{\"error\": \"No results\"}";
             var parts = ReadPemParts();
             var decoder = new DefaultDerAsnDecoder();
             // add in as many buckets as needed by the certs.
