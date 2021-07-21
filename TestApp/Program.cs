@@ -23,6 +23,8 @@ namespace TestApp
             {
                 rawSchema = sr.ReadToEnd();
             }
+            CddlHandler cddl = new CddlHandler(cPath, rawSchema);
+            cddl.InitalLoad();
             //    var fileDialog = new OpenFileDialog();
             Console.Write("Enter file name of PEM file:");
             string path = Console.ReadLine().Trim('"');  // to support cut and paste from file explorer

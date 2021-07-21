@@ -35,7 +35,7 @@ namespace PemUtils
             bool bComment = false;
             bool bracket = false;
             bool bCap = false;
-            bool bCommand = true;
+            bool bCommand = false;
             List<string> resList = new List<string>();
             int i = 0;
             foreach (char c in input)
@@ -48,7 +48,8 @@ namespace PemUtils
                 {
                     if (bCommand && c == '\n')  // need to collect all tokens in a command and then terminate the command
                     {
-                        string iTest = input.Substring(iStart, i - iStart).TrimEnd();
+                        string iTest = input.Substring(iStart, i - iStart).Trim();
+                        resList.Add("::=");
                         resList.Add(iTest);
                         resList.Add("tERM");
                         bCommand = false;
@@ -64,6 +65,7 @@ namespace PemUtils
                         {
                             if (!bWhite)
                             {
+                                resList.Add("::=");
                                 string iTest = input.Substring(iStart, i - iStart).TrimEnd();
                                 resList.Add(iTest);
                             }
@@ -91,36 +93,42 @@ namespace PemUtils
                             throw new InvalidOperationException("two open brackets w/o close bracket");
                         }
                     }
-                    else if (!bCommand)
+                    else
                     {
-                        if (bWhite)
+                        if (bCommand)
                         {
-                            if (!Char.IsWhiteSpace(c)) { bWhite = false; iStart = i; }
                         }
                         else
                         {
-                            if (Char.IsWhiteSpace(c))
+                            if (bWhite)
                             {
-                                string iTest = input.Substring(iStart, i - iStart).TrimEnd();
-                                if (iTest == "--") { bComment = true; bWhite = true; }
-                                else if (iTest == "::=")
+                                if (!Char.IsWhiteSpace(c)) { bWhite = false; iStart = i; }
+                            }
+                            else
+                            {
+                                if (Char.IsWhiteSpace(c))
                                 {
-                                    bCommand = true;
-                                    //                  resList.Add(iTest);
-                                    iStart = i;  // this prevents dups
-                                }
-                                else
-                                {
-                                    bCap = iTest.All(char.IsLetter) && iTest.All(char.IsUpper);
-                                    if (!bCap || c == '\n')
+                                    string iTest = input.Substring(iStart, i - iStart).TrimEnd();
+                                    if (iTest == "--") { bComment = true; bWhite = true; }
+                                    else if (iTest == "::=")
                                     {
-                                        if (iTest.EndsWith(','))  // a terminating comma is a syntax element of its own
+                                        bCommand = true;
+                                        //                  resList.Add(iTest);
+                                        iStart = i;  // this prevents dups
+                                    }
+                                    else
+                                    {
+                                        bCap = iTest.All(char.IsLetter) && iTest.All(char.IsUpper);
+                                        if (!bCap || c == '\n')
                                         {
-                                            resList.Add(iTest.TrimEnd(','));
-                                            resList.Add(",");
+                                            if (iTest.EndsWith(','))  // a terminating comma is a syntax element of its own
+                                            {
+                                                resList.Add(iTest.TrimEnd(','));
+                                                resList.Add(",");
+                                            }
+                                            else resList.Add(iTest);
+                                            bWhite = true;
                                         }
-                                        else resList.Add(iTest);
-                                        bWhite = true;
                                     }
                                 }
                             }

@@ -40,8 +40,6 @@ namespace PemUtils
          
         public string ReadAsJson(string cName, string schema)
         {
-            CddlHandler cddl = new CddlHandler(cName, schema);
-            cddl.InitalLoad();
             string json;
 
             var parts = ReadPemParts();
@@ -141,6 +139,18 @@ namespace PemUtils
             {
                 string seq = SequenceAsJson(dat as DerAsnContext);
                 return "\"context\":" + seq;
+            }
+            else if (selectType == "DerAsnUtcTime")
+            {
+                DerAsnUtcTime daut = dat as DerAsnUtcTime;
+                DateTimeOffset dto = daut.Value;
+                return "\"date_time\":" + dto.ToString();
+            }
+            else if (selectType == "DerAsnBoolean")
+            {
+                DerAsnBoolean b = dat as DerAsnBoolean;
+                bool dto = b.Value;
+                return "\"boolean\":" + dto.ToString();
             }
 
             return json;

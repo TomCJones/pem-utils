@@ -26,12 +26,14 @@ namespace PemUtils
         public readonly string _Name;
         public readonly string _RawSchema;
         private dynamic entry = new DynamicDictionary();
+        public string[] iArray;
         private Stack<CddlState> stateStack = new Stack<CddlState>();
         public CddlHandler(string cName, string rawSchema)
         {
             _Name = cName;
             _RawSchema = rawSchema;
         }
+        // load the token from the raw data into an array of strings which are tokens
         public string[] InitalLoad()
         {
             string[] res = new string[] { "Intial Load failed" };
@@ -41,7 +43,7 @@ namespace PemUtils
             string cType = "";
             string label = "";
             string seqToken = "";
-            string[] iArray = _RawSchema.AsnSplit();  //the input string split into symbols
+            iArray = _RawSchema.AsnSplit();  //the input string split into tpkens
             string[] seqValues = new string[3];
             Dictionary<string, string[]> o = null;
 
@@ -49,15 +51,15 @@ namespace PemUtils
             {
                 switch (iState)
                 {
-                    case 0:  // initial state
+                    case 0:  // initial state waiting for symbol
                         if (nStr.StringType() == 19)
                         {
                             label = nStr;
-                            iState = 1;
+                            iState = 1;  
                         }
                         break;
 
-                    case 1:
+                    case 1:   // 1st symbol recieved
                         if (nStr == "::=")           // is the label being equated to something?
                         {
                             iState = 2;
@@ -70,7 +72,7 @@ namespace PemUtils
                         }
                         break;
 
-                    case 2:
+                    case 2:  // waiting for what the symbol defintion is
                         cType = nStr;
                         iState = 3;
                         break;
@@ -79,13 +81,17 @@ namespace PemUtils
                         if (nStr == "{")
                         {
                             o = (Dictionary<string, string[]>)Activator.CreateInstance(typeof(Dictionary<string, string[]>));
+                            o.Add("_TYPE", new string[3] { cType, "", "" });
                             entry.Add(label, o); 
                             iState = 4;
                         }
                         else if (nStr.StringType() == 19)
                         {
-                            label = nStr;
-                            iState = 1;
+                            if (nStr == "tERM")
+                            {
+                                entry.Add(label, cType);
+                                iState = 0;
+                            }
                         }
                         else { throw new InvalidOperationException("Expected a valid token.  Received " + nStr); }
 

@@ -38,7 +38,6 @@ namespace PemUtils
         }
         public bool Add(string key, object value)
         {
-            bool bRet = false;
             try
             {
                dictionary.Add(key, value);

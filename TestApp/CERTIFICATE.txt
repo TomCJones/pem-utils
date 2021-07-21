@@ -38,7 +38,12 @@
         subjectPublicKey     BIT STRING  }
 
    Extensions  ::=  SEQUENCE SIZE (1..MAX) OF Extension
-      Extension  ::=  SEQUENCE  {
+
+   Extension  ::=  SEQUENCE  {
         extnID      OBJECT IDENTIFIER,
         critical    BOOLEAN DEFAULT FALSE,
         extnValue   OCTET STRING  }
+
+   AlgorithmIdentifier  ::=  SEQUENCE  {
+        algorithm               OBJECT IDENTIFIER,
+        parameters              ANY DEFINED BY algorithm OPTIONAL  }
