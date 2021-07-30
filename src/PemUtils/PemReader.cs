@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -20,6 +23,7 @@ namespace PemUtils
         private readonly Stream _stream;
         private readonly bool _disposeStream;
         private Encoding _encoding;
+        private CddlHandler _cddl;
         public static Func<IDerAsnDecoder> ExpandedDecoder { get; set; } = () => new DefaultDerAsnDecoder();
         //   protected ExpandedDecoder decoder;
 
@@ -37,14 +41,15 @@ namespace PemUtils
         {
             if (_disposeStream) _stream.Dispose();
         }
-         
-        public string ReadAsJson(string cName, string schema)
+
+        public string ReadAsJson(string cName, CddlHandler cddl)
         {
+            _cddl = cddl;
             string json;
 
             var parts = ReadPemParts();
             var decoder = new DefaultDerAsnDecoder();
-            // add in as many buckets as needed by the certs.
+            // add in as many buckets as needed by the certs to the decode (will be A0, A1, A2, A3).  // this is a kludge will a general soluition is architected
             int i = 3;
             while (i > -1)
             {
@@ -53,37 +58,152 @@ namespace PemUtils
                 i--;
             }
 
+            // get name of schema to be used from the CddlHandler
+            var cddlEnum = cddl.entry.GetEnumerator();
+            cddlEnum.MoveNext();
+            string cddlTitle = cddlEnum.Current.Key;
+            object cddlValue = cddlEnum.Current.Value;
+
             byte[] derData = Convert.FromBase64String(parts.Body);
             var der = decoder.Decode(derData);
             if (der == null) throw new ArgumentNullException(nameof(der));
             var sequence = der as DerAsnContext;
             if (sequence == null) throw new ArgumentException($"{nameof(der)} is not a sequence");
-            json = SequenceAsJson(sequence);
-            return "{\"" + parts.Format + "\":" + json + "}";
+            json = SequenceAsJson(sequence, cddlTitle, cddlValue);
+            return json;
         }
-        public string SequenceAsJson(DerAsnContext das)
+        public string SequenceAsJson(DerAsnContext das, string oName, object oValue)
         {
             if (das == null) return "{null}";
-            StringBuilder seqStr = new StringBuilder();
-            int i = 0; int cnt = das.Value.Length;
-            string foo = "";
-            while (i < cnt)
+            int cntDict = 0;
+            List<string> namesDict = new List<string>();
+            List<string[]> valuesDict = new List<string[]>();
+            if (oValue is IDictionary)
+            {
+                cntDict = (oValue as Dictionary<string, string[]>).Count;
+                namesDict = (oValue as Dictionary<string, string[]>).Keys.ToList<string>();
+                valuesDict = (oValue as Dictionary<string, string[]>).Values.ToList<string[]>();
+            }
+            StringBuilder seqStr = new StringBuilder("{\"" + oName + "\":");
+            int i = 0;
+            int cnt = das.Value.Length;
+            string tName = "";
+            string[] tValue = null;
+            if (cntDict>0)  //  TODO get env if not production  --   add the type element to the json for debug only
+            {
+                string[] typeStr = valuesDict[0];
+                string type0 = typeStr[0];
+                seqStr.Append("\"_type\":\"" + type0 + "\",");
+            }
+            long lTag;
+            while (i < cnt)                  // TODO for optional we need to advance
             {
                 DerAsnType dat = das.Value[i];
+                lTag = dat.Identifier.Tag;
                 if (i > 0) seqStr.Append(",");
-                seqStr.Append(ElementAsJson(dat));
-                foo = seqStr.ToString();
                 i++;
-            }
-            return "{" + seqStr.ToString() + "}";
-        }
-        public string ElementAsJson(DerAsnType dat)
-        {
-            var res = dat.Value;
-            string selectType = dat.GetType().Name;
-            string json = "error with type " + selectType;
+                tName = "empty";
+                if (cntDict >= i) { tName = namesDict[i]; tValue = valuesDict[i]; }
+                if (tValue != null  &&  tValue[2] == "OPTIONAL")  // Optional elements are all at the end of the sequence
+                {
+                    int j = i;
+                    //  test if current one is in the input
+                    string contextIndex = tValue[0].TrimStart('[').TrimEnd(']');
+                    try
+                    {
+                        long indx = int.Parse(contextIndex);
+                        while (indx != lTag)
+                        {
+                            j++;
+                            tName = "empty";
+                            if (cntDict >= j) { tName = namesDict[j]; tValue = valuesDict[j]; }
+                            contextIndex = tValue[0].TrimStart('[').TrimEnd(']');
+                            indx = int.Parse(contextIndex);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
 
-            if (selectType == "DerAsnBoolen")            //type x01
+                    }
+                    string plicit = "EXPLICIT";
+                    string nextName = "";
+                }
+                seqStr.Append(ElementAsJson(dat, tName, tValue));
+                tName = "";
+            }
+            return seqStr.ToString() + "}";
+        }
+        public string ElementAsJson(DerAsnType dat, string oName, object oValue)
+        {
+            DerAsnType[] res = null;
+            long lTag;
+            string[] sValue;
+            bool bRet = false;
+            string selectType = dat?.GetType()?.Name;
+            string json = "error with type " + selectType;
+            try
+            {
+                if (dat != null)
+                {
+
+                    
+
+                    if (selectType ==  "DerAsnInteger")
+                    {
+                        object nValue = dat.Value;                          // null reference set to null
+                        BigInteger biRes = (BigInteger) nValue ;
+                        byte[] byteRes = biRes.ToByteArray();
+
+                        return "{\"" + oName + "\":" + biRes.ToString();
+                    }
+
+
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("expected [integer] for exception " + ex.Message);
+            }
+            DerAsnTagClass datc = dat.Identifier.TagClass;
+            sValue = oValue as string[];
+            lTag = dat.Identifier.Tag;
+            if (datc == DerAsnTagClass.ContextSpecific)
+            {
+                string contextIndex = sValue[0].TrimStart('[').TrimEnd(']');
+                string plicit = "EXPLICIT";
+                string nextName = "";
+                res = (DerAsnType[])dat.Value;                          // null reference set to null
+                try
+                {
+                    long indx = int.Parse(contextIndex);
+                    string[] nextObj = sValue[1].Split(' ');  //  should be xxPLICIT next name
+                    nextName = plicit = nextObj[0];           // there might be cases where "EXPLICIT" is omitted
+                    if (!string.IsNullOrWhiteSpace(nextObj[1])) { nextName = nextObj[1]; }
+                    if (lTag == indx)                         // is this the context specific tag that we are parsing?
+                    {
+                        bRet = _cddl.entry.TryGetValue(nextName, out object nValue);
+                        BigInteger biRet = 0;
+                        DerAsnType dat0 = res[0];
+                        string getType = dat0.GetType().Name;
+                        if (res[0].GetType().Name == "DerAsnInteger")
+                        {
+                            biRet = (res[0] as DerAsnInteger).Value;
+                            return "\""+ nextName + "\":" + biRet.ToString();   //  TODO add base64 encoding
+                        }
+                        //                string seq = ElementAsJson(res[0], nextName, nValue);
+                        return "{\"" + oName + "\":" + biRet.ToString();
+                    }
+                    else                                       // if not and this is optional try the next schema entry
+                    {
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("expected [integer] in context-specific key, found " + sValue[0]);
+                }
+            }
+            else if (selectType == "DerAsnBoolen")            //type x01
             {
                 byte[] ba = new byte[1] { 0 };            // to avoid null condition
                 var bValue = dat.Value as DerAsnBoolean;     // TODO - actually check value
@@ -101,7 +221,7 @@ namespace PemUtils
             }
             else if (selectType == "DerAsnBitString")    //type x03
             {
-                string seq = SequenceAsJson(dat as DerAsnContext);
+                string seq = SequenceAsJson(dat as DerAsnContext, oName, oValue);
                 return "\"bitstring\":" + seq.Replace('-', ':');
             }
             else if (selectType == "DerAsnOctetString")   //type x04
@@ -116,29 +236,41 @@ namespace PemUtils
             }
             else if (selectType == "DerAsnObjectIdentifier")   //type x06
             {
-                int[] values = dat.Value as int[];
-                StringBuilder seq = new StringBuilder();
-                foreach (int iv in values)
+                StringBuilder seq = new StringBuilder(40);    // long enuf for an OID of 20 integers
+                string seqStr = "";
+                try
                 {
-                    if (seq.Length > 0) { seq.Append("."); }
-                    seq.Append(iv.ToString());
+                    int[] values = dat.Value as int[];
+                    foreach (int iv in values)
+                    {
+                        if (seq.Length > 0) { seq.Append("."); }
+                        seq.Append(iv.ToString());
+                    }
+                    seqStr = "\"" + oName + "\":\"" + seq.ToString(); // must convert SB to string befor passing the string to a function
                 }
-                return "\"oid\":\"" + seq.ToString() + "\"";
+                catch (Exception ex)
+                {
+                    return "\"" + oName + "\":\"" + " String Builder Exception: " + ex.Message + "\"";
+                }
+
+                return  seqStr + "\"";
             }
             else if (selectType == "DerAsnSequence")   //type x10
             {
-                string seq = SequenceAsJson(dat as DerAsnContext);
+                string seq = SequenceAsJson(dat as DerAsnContext, oName, oValue);
                 return "\"seq\":" + seq;
             }
             else if (selectType == "DerAsnSet")       //type x11
             {
-                string seq = SequenceAsJson(dat as DerAsnContext);
+                string seq = SequenceAsJson(dat as DerAsnContext, oName, oValue);
                 return "\"set\":" + seq;
             }
             else if (selectType == "DerAsnContext")   //type xA0 A1 A2 A3
             {
-                string seq = SequenceAsJson(dat as DerAsnContext);
-                return "\"context\":" + seq;
+                string nName = (oValue as string[])[1];
+                bRet = _cddl.entry.TryGetValue(nName, out object nValue);
+                string seq = SequenceAsJson(dat as DerAsnContext, nName, nValue);
+                return "{\"" + oName + "\":" + seq;
             }
             else if (selectType == "DerAsnUtcTime")
             {

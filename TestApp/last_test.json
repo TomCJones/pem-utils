@@ -1,0 +1,67 @@
+{
+  "Certificate": null,
+  "_type": "  SEQUENCE",
+  {
+    "tbsCertificate": {
+      "TBSCertificate": null,
+      "_type": "  SEQUENCE",
+      "Version": 2,
+      {
+        "serialNumber": 316337519544732095201990243517622590769115,
+        {
+          "signature": {
+            "AlgorithmIdentifier": null,
+            "_type": "  SEQUENCE",
+            "algorithm": "1.2.840.113549.1.1.11",
+            "null": 0
+          },
+          {
+            "issuer": {
+              "Name": null,
+              "set": { null },
+              "set": { null },
+              "set": { null }
+            },
+            {
+              "validity": {
+                "Validity": null,
+                "_type": " SEQUENCE",
+                "date_time": "2021-06-09",
+                1: null,
+                19: 57,
+                "AM": null,
+                "+00": "00",
+                "date_time": "2021-09-07",
+                1: null,
+                19: 57,
+                "AM": null,
+                "+00": "00"
+              },
+              {
+                "subject": {
+                  "Name": null,
+                  "set": { null }
+                },
+                {
+                  "subjectPublicKeyInfo": {
+                    "SubjectPublicKeyInfo": null,
+                    "_type": "  SEQUENCE",
+                    {
+                      "algorithm": {
+                        "AlgorithmIdentifier": null,
+                        "_type": "  SEQUENCE",
+                        "algorithm": "1.2.840.113549.1.1.1",
+                        "null": 0
+                      },
+                      "bitstring": { null }
+                    },
+                    { "extensions": 0 },
+                    {
+                      "signatureAlgorithm": {
+                        "AlgorithmIdentifier": null,
+                        "_type": "  SEQUENCE",
+                        "algorithm": "1.2.840.113549.1.1.11",
+                        "null": 0
+                      },
+                      "bitstring": { null }
+                    }

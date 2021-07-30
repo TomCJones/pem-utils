@@ -25,7 +25,7 @@ namespace PemUtils
             };
         public readonly string _Name;
         public readonly string _RawSchema;
-        private dynamic entry = new DynamicDictionary();
+        public dynamic entry = new Dictionary<string, object>();
         public string[] iArray;
         private Stack<CddlState> stateStack = new Stack<CddlState>();
         public CddlHandler(string cName, string rawSchema)
@@ -82,7 +82,6 @@ namespace PemUtils
                         {
                             o = (Dictionary<string, string[]>)Activator.CreateInstance(typeof(Dictionary<string, string[]>));
                             o.Add("_TYPE", new string[3] { cType, "", "" });
-                            entry.Add(label, o); 
                             iState = 4;
                         }
                         else if (nStr.StringType() == 19)
@@ -100,7 +99,7 @@ namespace PemUtils
                         if (nStr.StringType() == 19)
                         {
                             seqToken = nStr;
-                            seqValues[0] = seqValues[1] = seqValues[2] = "";
+                            seqValues = new string[3];
                             iState = 5;
                         }
                         else
@@ -112,15 +111,17 @@ namespace PemUtils
                     case 5:
                         if (nStr == ",")
                         {
+                            
                             o.Add(seqToken, seqValues);
                             iState = 4;  // go look for next token
                         }
                         else if (nStr == "}")
                         {
-                            o.Add(seqToken, seqValues);
+                            o.Add(seqToken, seqValues); // add the last entery to the sequence dictionary
+                            entry.Add(label, o);        // now that this dictionary is full, add it to the entry dictionary
                             iState = 0;
                         }
-                        else if(nStr.StartsWith('['))
+                        else if(nStr.StartsWith('['))   // typically [0]
                         {
                             seqValues[0] = nStr;
                         }

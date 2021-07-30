@@ -35,7 +35,7 @@ namespace TestApp
                     var stream = File.OpenRead(path);
                     PemReader pemReader = new PemReader(stream);
  
-                    string jsonAsn = pemReader.ReadAsJson(path, rawSchema);
+                    string jsonAsn = pemReader.ReadAsJson(path, cddl);
                     Console.Write(jsonAsn);
                 }
                 catch (Exception ex)
