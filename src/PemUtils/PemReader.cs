@@ -70,7 +70,7 @@ namespace PemUtils
             var sequence = der as DerAsnContext;
             if (sequence == null) throw new ArgumentException($"{nameof(der)} is not a sequence");
             json = SequenceAsJson(sequence, cddlTitle, cddlValue);
-            return json;
+            return "{" + json;
         }
         public string SequenceAsJson(DerAsnContext das, string oName, object oValue)
         {
@@ -84,7 +84,7 @@ namespace PemUtils
                 namesDict = (oValue as Dictionary<string, string[]>).Keys.ToList<string>();
                 valuesDict = (oValue as Dictionary<string, string[]>).Values.ToList<string[]>();
             }
-            StringBuilder seqStr = new StringBuilder("{\"" + oName + "\":");
+            StringBuilder seqStr = new StringBuilder();   // creating a new sequence without a beginning "{"
             int i = 0;
             int cnt = das.Value.Length;
             string tName = "";
@@ -93,10 +93,10 @@ namespace PemUtils
             {
                 string[] typeStr = valuesDict[0];
                 string type0 = typeStr[0];
-                seqStr.Append("\"_type\":\"" + type0 + "\",");
+                seqStr.Append("\"_type\":\"" + type0.Trim() + "\",");
             }
             long lTag;
-            while (i < cnt)                  // TODO for optional we need to advance
+            while (i < cnt)                  //
             {
                 DerAsnType dat = das.Value[i];
                 lTag = dat.Identifier.Tag;
@@ -122,9 +122,7 @@ namespace PemUtils
                         }
                     }
                     catch (Exception ex)
-                    {
-
-                    }
+                    {  }
                     string plicit = "EXPLICIT";
                     string nextName = "";
                 }
@@ -144,20 +142,15 @@ namespace PemUtils
             try
             {
                 if (dat != null)
-                {
-
-                    
-
+                {                
                     if (selectType ==  "DerAsnInteger")
                     {
                         object nValue = dat.Value;                          // null reference set to null
                         BigInteger biRes = (BigInteger) nValue ;
                         byte[] byteRes = biRes.ToByteArray();
 
-                        return "{\"" + oName + "\":" + biRes.ToString();
+                        return "\"" + oName + "\":" + biRes.ToString();
                     }
-
-
                 }
             }
             catch (Exception ex)
@@ -191,7 +184,7 @@ namespace PemUtils
                             return "\""+ nextName + "\":" + biRet.ToString();   //  TODO add base64 encoding
                         }
                         //                string seq = ElementAsJson(res[0], nextName, nValue);
-                        return "{\"" + oName + "\":" + biRet.ToString();
+                        return "\"" + oName + "\":" + biRet.ToString();
                     }
                     else                                       // if not and this is optional try the next schema entry
                     {
@@ -270,13 +263,13 @@ namespace PemUtils
                 string nName = (oValue as string[])[1];
                 bRet = _cddl.entry.TryGetValue(nName, out object nValue);
                 string seq = SequenceAsJson(dat as DerAsnContext, nName, nValue);
-                return "{\"" + oName + "\":" + seq;
+                return "\"" + oName + "\":{" + seq;
             }
             else if (selectType == "DerAsnUtcTime")
             {
                 DerAsnUtcTime daut = dat as DerAsnUtcTime;
                 DateTimeOffset dto = daut.Value;
-                return "\"date_time\":" + dto.ToString();
+                return "\"date_time\":\"" + dto.ToString() + "\"";
             }
             else if (selectType == "DerAsnBoolean")
             {
