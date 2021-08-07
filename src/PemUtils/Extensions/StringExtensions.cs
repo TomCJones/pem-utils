@@ -49,11 +49,15 @@ namespace PemUtils
                     if (bCommand && c == '\n')  // need to collect all tokens in a command and then terminate the command
                     {
                         string iTest = input.Substring(iStart, i - iStart).Trim();
-                        resList.Add("::=");
-                        resList.Add(iTest);
-                        resList.Add("tERM");
-                        bCommand = false;
-                        bWhite = true;
+                        if (!string.IsNullOrWhiteSpace(iTest))  // command must have a target, or the \n should be ignored
+                        {
+                            resList.Add("::=");
+                            resList.Add(iTest);
+                            resList.Add("tERM");
+                            bCommand = false;
+                            bWhite = true;
+                        }
+
                     }
                     if (c == '{')
                     {

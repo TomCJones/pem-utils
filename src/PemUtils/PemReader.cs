@@ -14,12 +14,13 @@ using System.Threading;
 using DerConverter;
 using DerConverter.Asn;
 using DerConverter.Asn.KnownTypes;
+using PemUtils.Models;
 
 namespace PemUtils
 {
     public class PemReader : IDisposable
     {
-        private static readonly int[] RsaIdentifier = new[] { 1, 2, 840, 113549, 1, 1, 1 };
+        private static readonly int[] RsaIdentifier = new[] { 1, 2, 840, 113549, 1, 1, 1 };  //  TODO move to csv file
         private readonly Stream _stream;
         private readonly bool _disposeStream;
         private Encoding _encoding;
@@ -72,6 +73,7 @@ namespace PemUtils
             json = SequenceAsJson(sequence, cddlTitle, cddlValue);
             return "{" + json;
         }
+
         public string SequenceAsJson(DerAsnContext das, string oName, object oValue)
         {
             if (das == null) return "{null}";
@@ -89,13 +91,61 @@ namespace PemUtils
             int cnt = das.Value.Length;
             string tName = "";
             string[] tValue = null;
-            if (cntDict>0)  //  TODO get env if not production  --   add the type element to the json for debug only
+            long lTag;
+            DerAsnType[] res = null;
+
+            string testStr = valuesDict[0][0].Trim();
+
+            if (cntDict > 0 && testStr == "CHOICE")   // can be effectively ignored
+            {
+                DerAsnType datx = das.Value[i];
+                lTag = datx.Identifier.Tag;
+                if (valuesDict[1][0] == "SEQUENCE OF")
+                {
+                    string nextName = valuesDict[1][1];             // these are reuse for each entry in the sequence
+                    string nextValues = _cddl.entry[nextName] as string;
+                    List<DerAsnType> seqDict = das.Value.ToList<DerAsnType>();
+                    if (nextValues.Trim().StartsWith("SET OF"))
+                    {
+                        string n2Name = nextValues.Substring(6).Trim();
+                        Dictionary<string, string[]> n2Value = _cddl.entry[n2Name] as Dictionary<string, string[]>;
+                        long c2Dict = n2Value.Count;
+                        List<string> n2Dict = n2Value.Keys.ToList<string>();
+                        List<string[]> v2Dict = n2Value.Values.ToList<string[]>();
+                        foreach (DerAsnType dat in seqDict)
+                        {
+                            if (n2Dict[0] == "_TYPE" && n2Dict[1] == "type" && n2Dict[2] == "value")
+                            {
+                                string typeSTR = v2Dict[1][1];
+                                string valueStr = v2Dict[2][1];
+                                res = (DerAsnType[])dat.Value;                          // null reference set to null
+                                string subType = res[0]?.GetType()?.Name;
+                                DerAsnType[] daa = res[0]?.Value as DerAsnType[];
+                                string sea = "{" + SequenceAsJson(res[0] as DerAsnContext, n2Name, n2Value);
+                                AttributeTypeAndValue resp = JsonSerializer.Deserialize<AttributeTypeAndValue>(sea);
+                                string fubar = n2Name;
+                                if (seqStr.Length > 1) { seqStr.Append(","); }
+                                seqStr.Append("\"" + resp.type + "\":\"" + resp.printablestring + "\"");
+                            }
+                        }
+                        return  seqStr.ToString() + "}" ;
+                    }
+                    else
+                    {
+                        throw new Exception("Expected SET OF, found " + nextValues);
+                    }
+                }
+
+                return seqStr.ToString() + "}";
+            }
+
+            if (cntDict > 0)  //  TODO get env if not production  --   add the type element to the json for debug only
             {
                 string[] typeStr = valuesDict[0];
                 string type0 = typeStr[0];
                 seqStr.Append("\"_type\":\"" + type0.Trim() + "\",");
             }
-            long lTag;
+
             while (i < cnt)                  //
             {
                 DerAsnType dat = das.Value[i];
@@ -103,8 +153,15 @@ namespace PemUtils
                 if (i > 0) seqStr.Append(",");
                 i++;
                 tName = "empty";
-                if (cntDict >= i) { tName = namesDict[i]; tValue = valuesDict[i]; }
-                if (tValue != null  &&  tValue[2] == "OPTIONAL")  // Optional elements are all at the end of the sequence
+                try
+                {
+                    if (cntDict >= i) { tName = namesDict[i]; tValue = valuesDict[i]; }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Sequencing to JSON, cannot read names for valudes from dictionary " + ex.Message);
+                }
+                if (tValue != null && tValue[2] == "OPTIONAL")  // Optional elements are all at the end of the sequence
                 {
                     int j = i;
                     //  test if current one is in the input
@@ -122,7 +179,7 @@ namespace PemUtils
                         }
                     }
                     catch (Exception ex)
-                    {  }
+                    { }
                     string plicit = "EXPLICIT";
                     string nextName = "";
                 }
@@ -142,11 +199,11 @@ namespace PemUtils
             try
             {
                 if (dat != null)
-                {                
-                    if (selectType ==  "DerAsnInteger")
+                {
+                    if (selectType == "DerAsnInteger")
                     {
                         object nValue = dat.Value;                          // null reference set to null
-                        BigInteger biRes = (BigInteger) nValue ;
+                        BigInteger biRes = (BigInteger)nValue;
                         byte[] byteRes = biRes.ToByteArray();
 
                         return "\"" + oName + "\":" + biRes.ToString();
@@ -181,7 +238,7 @@ namespace PemUtils
                         if (res[0].GetType().Name == "DerAsnInteger")
                         {
                             biRet = (res[0] as DerAsnInteger).Value;
-                            return "\""+ nextName + "\":" + biRet.ToString();   //  TODO add base64 encoding
+                            return "\"" + nextName + "\":" + biRet.ToString();   //  TODO add base64 encoding
                         }
                         //                string seq = ElementAsJson(res[0], nextName, nValue);
                         return "\"" + oName + "\":" + biRet.ToString();
@@ -246,7 +303,7 @@ namespace PemUtils
                     return "\"" + oName + "\":\"" + " String Builder Exception: " + ex.Message + "\"";
                 }
 
-                return  seqStr + "\"";
+                return seqStr + "\"";
             }
             else if (selectType == "DerAsnSequence")   //type x10
             {
@@ -255,8 +312,34 @@ namespace PemUtils
             }
             else if (selectType == "DerAsnSet")       //type x11
             {
+                string qualifier = (oValue as string[])[0];
+                if (qualifier == "SEQUENCE OF")
+                {
+                    string nextName = (oValue as string[])[1];
+                    string nextValue = _cddl.entry[nextName].ToString();
+                    if (nextValue.StartsWith("SET OF"))
+                    {
+                        string n2Name = nextValue.Substring(6).Trim();
+                        Dictionary<string, string[]> n2Value = _cddl.entry[n2Name];
+                        long c2Dict = n2Value.Count;
+                        List<string> n2Dict = n2Value.Keys.ToList<string>();
+                        List<string[]> v2Dict = n2Value.Values.ToList<string[]>();
+                        if (n2Dict[0] == "_TYPE" && n2Dict[1] == "type" && n2Dict[2] == "value")
+                        {
+                            string typeSTR = v2Dict[1][1];
+                            string valueStr = v2Dict[2][1];
+                            res = (DerAsnType[])dat.Value;                          // null reference set to null
+                            string subType = res[0]?.GetType()?.Name;
+                            DerAsnType[] daa = res[0]?.Value as DerAsnType[];
+                            string sea = "{" + SequenceAsJson(res[0] as DerAsnContext, n2Name, n2Value);
+                            AttributeTypeAndValue resp = JsonSerializer.Deserialize<AttributeTypeAndValue>(sea);
+                            return "\"" + resp.type + "\":\"" + resp.printablestring + "\"";
+                        }
+                        string fubar = n2Name;
+                    }
+                }
                 string seq = SequenceAsJson(dat as DerAsnContext, oName, oValue);
-                return "\"set\":" + seq;
+                return seq;
             }
             else if (selectType == "DerAsnContext")   //type xA0 A1 A2 A3
             {
@@ -276,6 +359,12 @@ namespace PemUtils
                 DerAsnBoolean b = dat as DerAsnBoolean;
                 bool dto = b.Value;
                 return "\"boolean\":" + dto.ToString();
+            }
+            else if (selectType == "DerAsnPrintableString")
+            {
+                DerAsnPrintableString daps = dat as DerAsnPrintableString;
+                string dts = daps.Value;
+                return "\"printablestring\":\"" + dts + "\"";
             }
 
             return json;
@@ -305,8 +394,8 @@ namespace PemUtils
                 var footerFormat = ExtractFormat(parts.Footer, isFooter: true);
                 string format = headerFormat._type;
                 parts.Format = format;
-                if (!headerFormat.Equals(footerFormat)) throw new InvalidOperationException($"Header/footer format mismatch: {headerFormat}/{footerFormat}");
-
+                if (!headerFormat.Equals(footerFormat))
+                    throw new InvalidOperationException($"Header/footer format mismatch: {headerFormat}/{footerFormat}");
                 return parts;
             }
 
@@ -315,8 +404,8 @@ namespace PemUtils
         private static PemParts ExtractPemParts(string pem)
         {
             var match = Regex.Match(pem, @"^(?<header>\-+\s?BEGIN[^-]+\-+)\s*(?<body>[^-]+)\s*(?<footer>\-+\s?END[^-]+\-+)\s*$");
-            if (!match.Success) throw new InvalidOperationException("Data on the stream doesn't match the required PEM format");
-
+            if (!match.Success)
+                throw new InvalidOperationException("Data on the stream doesn't match the required PEM format");
             return new PemParts
             {
                 Header = match.Groups["header"].Value,
@@ -329,7 +418,8 @@ namespace PemUtils
         {
             var beginOrEnd = isFooter ? "END" : "BEGIN";
             var match = Regex.Match(headerOrFooter, $@"({beginOrEnd})\s+(?<format>[^-]+)", RegexOptions.IgnoreCase);
-            if (!match.Success) throw new InvalidOperationException($"Unrecognized {beginOrEnd}: {headerOrFooter}");
+            if (!match.Success)
+                throw new InvalidOperationException($"Unrecognized {beginOrEnd}: {headerOrFooter}");
             return PemFormat.Parse(match.Groups["format"].Value.Trim());
         }
 

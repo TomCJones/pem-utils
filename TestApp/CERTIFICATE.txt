@@ -47,3 +47,19 @@
    AlgorithmIdentifier  ::=  SEQUENCE  {
         algorithm               OBJECT IDENTIFIER,
         parameters              ANY DEFINED BY algorithm OPTIONAL  }
+
+   Name ::= CHOICE {
+     RDNSequence }
+
+   RDNSequence ::= SEQUENCE OF RelativeDistinguishedName
+
+   RelativeDistinguishedName ::=
+     SET OF AttributeTypeAndValue
+
+   AttributeTypeAndValue ::= SEQUENCE {
+     type     AttributeType,
+     value    AttributeValue }
+
+   AttributeType ::= OBJECT IDENTIFIER
+
+   AttributeValue ::= ANY DEFINED BY AttributeType

@@ -10,16 +10,16 @@
       "null": 0
     },
     "issuer": {
-      "set": { null },
-      "set": { null },
-      "set": { null }
+      "2.5.4.6": "US",
+      "2.5.4.10": "Let's Encrypt",
+      "2.5.4.3": "R3"
     },
     "validity": {
       "_type": "SEQUENCE",
       "date_time": "2021-06-09 1:19:57 AM +00:00",
       "date_time": "2021-09-07 1:19:57 AM +00:00"
     },
-    "subject": { "set": { null } },
+    "subject": { "2.5.4.3": "trustregistry.org" },
     "subjectPublicKeyInfo": {
       "_type": "SEQUENCE",
       "algorithm": {

@@ -59,7 +59,7 @@ namespace PemUtils
                         }
                         break;
 
-                    case 1:   // 1st symbol recieved
+                    case 1:   // 1st symbol recieved, what's next
                         if (nStr == "::=")           // is the label being equated to something?
                         {
                             iState = 2;
@@ -73,23 +73,48 @@ namespace PemUtils
                         break;
 
                     case 2:  // waiting for what the symbol defintion is
-                        cType = nStr;
-                        iState = 3;
+                        if (nStr != "tERM" && !string.IsNullOrWhiteSpace(nStr))  // ignore if i got a blank or an EOL and keep looking for a symbol
+                        {
+                            cType = nStr;
+                            iState = 3;
+                        }
                         break;
 
                     case 3:
                         if (nStr == "{")
                         {
                             o = (Dictionary<string, string[]>)Activator.CreateInstance(typeof(Dictionary<string, string[]>));
-                            o.Add("_TYPE", new string[3] { cType, "", "" });
-                            iState = 4;
+
+                                o.Add("_TYPE", new string[3] { cType, "", "" });
+                                iState = 4;
                         }
                         else if (nStr.StringType() == 19)
                         {
                             if (nStr == "tERM")
                             {
-                                entry.Add(label, cType);
-                                iState = 0;
+                                if (cType.StartsWith("SEQUENCE OF"))
+                                {
+                                    string subStr = "";
+                                    try { subStr = cType.Substring(11).Trim(); } catch { }
+                                    try
+                                    {
+                                    o[label] = new string[] { "SEQUENCE OF", subStr, "" };
+                                    }
+                                    catch (Exception ex)
+                                    { throw new Exception("Could not find the key " + label + " in the dictionary"); }    
+                                    iState = 0;
+                                }
+                                else
+                                {
+                                    entry.Add(label, cType);
+                                    iState = 0;
+                                }
+                            }
+                            else if (cType == "SET OF")
+                            {
+                                o = (Dictionary<string, string[]>)Activator.CreateInstance(typeof(Dictionary<string, string[]>));
+                                seqValues = new string[3] { cType, "", "" };
+                                iState = 6;
                             }
                         }
                         else { throw new InvalidOperationException("Expected a valid token.  Received " + nStr); }
@@ -121,7 +146,7 @@ namespace PemUtils
                             entry.Add(label, o);        // now that this dictionary is full, add it to the entry dictionary
                             iState = 0;
                         }
-                        else if(nStr.StartsWith('['))   // typically [0]
+                        else if(nStr.StartsWith('['))   // typically [n]
                         {
                             seqValues[0] = nStr;
                         }
@@ -144,15 +169,32 @@ namespace PemUtils
 
                                 }
                             }
-
                         }
-
                         break;
 
-                    case 6:
+                    case 6:                 //  SET OF
+                        if (nStr.StringType() == 19)
+                        {
+                            if (string.IsNullOrWhiteSpace(seqValues[1]))
+                            { seqValues[1] = nStr; }
+                            else
+                            { seqValues[2] += " " + nStr; }
+                            iState = 7;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("parsing error in sequence named " + seqToken);
+                        }
+                        break;
+
+                    case 7:
+
+                        o.Add(seqToken, seqValues);
+                        iState = 0;
                         break;
 
                     default:
+                        throw new InvalidOperationException("Unknown State " + iState.ToString());
                         break;
                 }
                 res[0] = "Initial load succeeded";
