@@ -25,6 +25,8 @@ namespace PemUtils
         private readonly bool _disposeStream;
         private Encoding _encoding;
         private CddlHandler _cddl;
+        protected DefaultDerAsnDecoder _decoder = null;
+        protected string lastOID = "";
         public static Func<IDerAsnDecoder> ExpandedDecoder { get; set; } = () => new DefaultDerAsnDecoder();
         //   protected ExpandedDecoder decoder;
 
@@ -49,13 +51,18 @@ namespace PemUtils
             string json;
 
             var parts = ReadPemParts();
-            var decoder = new DefaultDerAsnDecoder();
+            if (_decoder == null)
+            {
+             _decoder = new DefaultDerAsnDecoder();
+
+            }
+
             // add in as many buckets as needed by the certs to the decode (will be A0, A1, A2, A3).  // this is a kludge will a general soluition is architected
             int i = 3;
             while (i > -1)
             {
                 DerAsnIdentifier identifier = new DerAsnIdentifier(DerAsnTagClass.ContextSpecific, DerAsnEncodingType.Constructed, i);
-                DefaultDerAsnDecoder defaultDerAsnDecoder = decoder.RegisterType(identifier, (decoder, identifier, data) => new DerAsnContext(decoder, identifier, data));
+                DefaultDerAsnDecoder defaultDerAsnDecoder = _decoder.RegisterType(identifier, (decoder, identifier, data) => new DerAsnContext(decoder, identifier, data));
                 i--;
             }
 
@@ -66,12 +73,13 @@ namespace PemUtils
             object cddlValue = cddlEnum.Current.Value;
 
             byte[] derData = Convert.FromBase64String(parts.Body);
-            var der = decoder.Decode(derData);
+            var der = _decoder.Decode(derData);
             if (der == null) throw new ArgumentNullException(nameof(der));
             var sequence = der as DerAsnContext;
             if (sequence == null) throw new ArgumentException($"{nameof(der)} is not a sequence");
             json = SequenceAsJson(sequence, cddlTitle, cddlValue);
-            return "{" + json;
+            return "{\"certificate\":{" + json ;
+
         }
 
         public string SequenceAsJson(DerAsnContext das, string oName, object oValue)
@@ -179,7 +187,9 @@ namespace PemUtils
                         }
                     }
                     catch (Exception ex)
-                    { }
+                    {
+                        throw new Exception("Error handing OPTIONAL elements " + oName + " Exception = " + ex.Message);
+                    }
                     string plicit = "EXPLICIT";
                     string nextName = "";
                 }
@@ -271,8 +281,38 @@ namespace PemUtils
             }
             else if (selectType == "DerAsnBitString")    //type x03
             {
-                string seq = SequenceAsJson(dat as DerAsnContext, oName, oValue);
-                return "\"bitstring\":" + seq.Replace('-', ':');
+                BitArray dabs = dat.Value as BitArray;
+                int baCnt = dabs.Length;
+                string seq = "byte array not divisible by 8, or was empty";
+                byte[] reversed = new byte[1] { 0 } ;
+                if (baCnt > 0 && baCnt % 8 == 0)
+                {
+                    int byteCnt = baCnt / 8;
+                    byte[] byteArray = new byte[byteCnt];
+                    dabs.CopyTo(byteArray, 0);
+                    if (oName == "subjectPublicKey")
+                    {
+                        reversed = byteArray.Reverse().ToArray();
+                        DerAsnContext der = _decoder.Decode(reversed) as DerAsnContext;
+                        string rsaOID = OID2String(RsaIdentifier);
+                        string spkName = "RSAPublicKey";
+                        Dictionary<string, string[]> spkDict = _cddl.entry[spkName];
+                        if (lastOID == rsaOID)
+                        {
+                            seq = "{" + SequenceAsJson(der, spkName, spkDict) + "}";
+                            return "\"" + spkName + "\":" + seq;
+                        }
+                        else
+                        {
+                            seq = "\"" + BitConverter.ToString(reversed) + "\"";    //  this converts to hex --  might want base64url?
+                        }
+                    }
+                    else
+                    {
+                        seq = "\"" + BitConverter.ToString(byteArray) + "\"";    //  this converts to hex --  might want base64url?
+                    }
+                }
+                return "\"" + oName + "\":" + seq  ;
             }
             else if (selectType == "DerAsnOctetString")   //type x04
             {
@@ -282,7 +322,7 @@ namespace PemUtils
             }
             else if (selectType == "DerAsnNull")           //type x05
             {
-                return "\"null\":0";
+                return "\"" + oName + "\":\"null\"";
             }
             else if (selectType == "DerAsnObjectIdentifier")   //type x06
             {
@@ -296,7 +336,8 @@ namespace PemUtils
                         if (seq.Length > 0) { seq.Append("."); }
                         seq.Append(iv.ToString());
                     }
-                    seqStr = "\"" + oName + "\":\"" + seq.ToString(); // must convert SB to string befor passing the string to a function
+                    lastOID = seq.ToString();                 // must convert SB to string before passing the string to a function
+                    seqStr = "\"" + oName + "\":\"" + lastOID; 
                 }
                 catch (Exception ex)
                 {
@@ -352,7 +393,7 @@ namespace PemUtils
             {
                 DerAsnUtcTime daut = dat as DerAsnUtcTime;
                 DateTimeOffset dto = daut.Value;
-                return "\"date_time\":\"" + dto.ToString() + "\"";
+                return "\"" + oName + "\":\"" + dto.ToString() + "\"";
             }
             else if (selectType == "DerAsnBoolean")
             {
@@ -505,5 +546,24 @@ namespace PemUtils
             public string Footer { get; set; }
             public string Format { get; set; }   //tcj
         }
-    }
+
+    public string OID2String(int[] bytesIn)
+    {
+        StringBuilder seq = new StringBuilder(40);    // long enuf for an OID of 20 integers
+        string seqStr = "";
+        try
+        {
+            foreach (int iv in bytesIn)
+            {
+                if (seq.Length > 0) { seq.Append("."); }
+                seq.Append(iv.ToString());
+            }
+            seqStr = seq.ToString();                 // must convert SB to string before passing the string to a function
+            return seqStr;
+        }
+        catch (Exception ex)
+        {
+            return " String Builder Exception: " + ex.Message + "\"";
+        }
+    }    }
 }

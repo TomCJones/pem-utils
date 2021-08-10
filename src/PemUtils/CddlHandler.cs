@@ -43,7 +43,7 @@ namespace PemUtils
             string cType = "";
             string label = "";
             string seqToken = "";
-            iArray = _RawSchema.AsnSplit();  //the input string split into tpkens
+            iArray = _RawSchema.AsnSplit();  //the input string split into tokens
             string[] seqValues = new string[3];
             Dictionary<string, string[]> o = null;
 
@@ -101,7 +101,7 @@ namespace PemUtils
                                     o[label] = new string[] { "SEQUENCE OF", subStr, "" };
                                     }
                                     catch (Exception ex)
-                                    { throw new Exception("Could not find the key " + label + " in the dictionary"); }    
+                                    { throw new Exception("Could not find the key " + label + " in the dictionary. Exception = " + ex.Message); }    
                                     iState = 0;
                                 }
                                 else

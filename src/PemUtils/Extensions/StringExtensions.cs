@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace PemUtils
@@ -28,6 +30,7 @@ namespace PemUtils
             }
             return iType;
         }
+
         public static string[] AsnSplit(this string input)
         {
             int iStart = 0;
